@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Delete Product</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 700px; margin: 2rem auto; padding: 0 1rem; background: #f4f7fb; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,0.08); padding: 2rem; }
+        .button { padding: 0.9rem 1.2rem; border-radius: 10px; border: none; cursor: pointer; }
+        .button.danger { background: #d64045; color: white; }
+        .button.secondary { background: #eceff5; color: #333; }
+        .actions { margin-top: 1.5rem; }
+        a { color: #0056d6; text-decoration: none; margin-left: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Delete Product</h1>
+        <p>Are you sure you want to delete <strong>{{ product.name|escape }}</strong>?</p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="actions">
+                <button class="button danger" type="submit">Delete</button>
+                <a class="button secondary" href="{% url 'home' %}">Cancel</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

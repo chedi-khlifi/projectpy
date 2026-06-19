@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Home</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; background: #f4f7fb; color: #1a1a1a; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08); padding: 1.5rem; margin-bottom: 1rem; }
+        .button { display:inline-block; padding:0.7rem 1rem; border-radius: 8px; background:#0056d6; color:white; text-decoration:none; }
+        .button.secondary { background:#666; }
+        table { width:100%; border-collapse:collapse; margin-top:1rem; }
+        th, td { padding:0.9rem 0.8rem; border-bottom:1px solid #e8ecf3; text-align:left; }
+        th { color:#556; font-weight:600; }
+        .actions a { margin-right:0.5rem; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>Product Dashboard</h1>
+            <p>Logged in as {{ request.user.username }}</p>
+        </div>
+        <div>
+            <a class="button secondary" href="{% url 'logout' %}">Logout</a>
+            <a class="button" href="{% url 'product_create' %}">Add Product</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Products</h2>
+        {% if products %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                        <tr>
+                            <td>{{ product.name|escape }}</td>
+                            <td>{{ product.description|linebreaksbr }}</td>
+                            <td class="actions">
+                                <a href="{% url 'product_update' product.pk %}">Edit</a>
+                                <a href="{% url 'product_delete' product.pk %}">Delete</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No products yet. Add one to get started.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

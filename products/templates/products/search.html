@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Product Search</title>
+</head>
+<body>
+    <h1>Product Search</h1>
+    <form method="get" action=".">
+        <label for="q">Search</label>
+        <input type="text" name="q" id="q" value="{{ query|escape }}" />
+        <button type="submit">Search</button>
+    </form>
+
+    {% if query %}
+        <h2>Results for {{ query|escape }}</h2>
+        <ul>
+            {% for product in products %}
+                <li>{{ product.name|escape }} - {{ product.description|linebreaksbr|safe }}</li>
+            {% empty %}
+                <li>No products found.</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</body>
+</html>
