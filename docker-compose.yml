@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  web:
+    image: projectpy:${IMAGE_TAG:-latest}
+    container_name: projectpy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./db.sqlite3:/app/db.sqlite3
+    environment:
+      - DJANGO_SETTINGS_MODULE=mysite.settings
+    restart: unless-stopped
