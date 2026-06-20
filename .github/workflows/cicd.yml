@@ -4,10 +4,6 @@ on:
   push:
     branches: [main]
 
-env:
-  IMAGE_NAME: projectpy
-  DEPLOY_DIR: ~/projectpy
-
 jobs:
   # ─────────────────────────────────────────
   # 1. TEST
@@ -35,90 +31,21 @@ jobs:
         run: python manage.py test --verbosity=2
 
   # ─────────────────────────────────────────
-  # 2. DEPLOY
+  # 2. DEPLOY to Railway
   # ─────────────────────────────────────────
   deploy:
-    name: Deploy to VM
+    name: Deploy to Railway
     runs-on: ubuntu-latest
     needs: test
 
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key: ${{ secrets.VM_SSH_KEY }}
-          port: ${{ secrets.VM_PORT }}
-          script: |
-            set -e
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            DEPLOY_DIR=~/projectpy
-            IMAGE_NAME=projectpy
-            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-            COMMIT_SHA="${{ github.sha }}"
-            SHORT_SHA="${COMMIT_SHA:0:7}"
-            LOG_FILE="$DEPLOY_DIR/logs/deploy_${TIMESTAMP}.log"
-            ROLLBACK_FILE="$DEPLOY_DIR/.last_stable_image"
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
 
-            mkdir -p $DEPLOY_DIR/logs
-
-            echo "========================================" | tee -a $LOG_FILE
-            echo "Deployment started at $TIMESTAMP"       | tee -a $LOG_FILE
-            echo "Commit: $COMMIT_SHA"                     | tee -a $LOG_FILE
-            echo "========================================" | tee -a $LOG_FILE
-
-            # Pull latest code
-            echo "[1/5] Pulling latest code..." | tee -a $LOG_FILE
-            cd $DEPLOY_DIR
-            git fetch origin main >> $LOG_FILE 2>&1
-            git reset --hard origin/main >> $LOG_FILE 2>&1
-
-            # Save current running image as rollback point
-            echo "[2/5] Saving rollback point..." | tee -a $LOG_FILE
-            CURRENT_IMAGE=$(docker inspect --format='{{.Config.Image}}' ${IMAGE_NAME} 2>/dev/null || echo "none")
-            echo "$CURRENT_IMAGE" > $ROLLBACK_FILE
-            echo "Rollback point saved: $CURRENT_IMAGE" | tee -a $LOG_FILE
-
-            # Build new image with commit tag
-            echo "[3/5] Building Docker image: ${IMAGE_NAME}:${SHORT_SHA}..." | tee -a $LOG_FILE
-            docker build -t ${IMAGE_NAME}:${SHORT_SHA} -t ${IMAGE_NAME}:latest . >> $LOG_FILE 2>&1
-
-            # Stop and remove old container
-            echo "[4/5] Replacing container..." | tee -a $LOG_FILE
-            docker compose down >> $LOG_FILE 2>&1 || true
-
-            # Start new container
-            echo "[5/5] Starting new container..." | tee -a $LOG_FILE
-            IMAGE_TAG=${SHORT_SHA} docker compose up -d >> $LOG_FILE 2>&1
-
-            # Health check — wait up to 30s for the app to respond
-            echo "Running health check..." | tee -a $LOG_FILE
-            for i in $(seq 1 6); do
-              sleep 5
-              if curl -sf http://localhost:8000/ > /dev/null 2>&1; then
-                echo "Health check passed." | tee -a $LOG_FILE
-                echo "========================================" | tee -a $LOG_FILE
-                echo "Deployment SUCCESS at $(date)"           | tee -a $LOG_FILE
-                echo "========================================" | tee -a $LOG_FILE
-                exit 0
-              fi
-              echo "Attempt $i/6 failed, retrying..." | tee -a $LOG_FILE
-            done
-
-            # Health check failed — auto rollback
-            echo "Health check FAILED. Initiating rollback..." | tee -a $LOG_FILE
-            LAST_IMAGE=$(cat $ROLLBACK_FILE)
-
-            if [ "$LAST_IMAGE" != "none" ] && [ -n "$LAST_IMAGE" ]; then
-              docker compose down >> $LOG_FILE 2>&1 || true
-              docker run -d --name ${IMAGE_NAME} -p 8000:8000 $LAST_IMAGE >> $LOG_FILE 2>&1
-              echo "Rolled back to: $LAST_IMAGE" | tee -a $LOG_FILE
-            else
-              echo "No previous image found. Cannot rollback." | tee -a $LOG_FILE
-            fi
-
-            echo "========================================" | tee -a $LOG_FILE
-            echo "Deployment FAILED at $(date)"            | tee -a $LOG_FILE
-            echo "========================================" | tee -a $LOG_FILE
-            exit 1
+      - name: Deploy
+        run: railway up --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
